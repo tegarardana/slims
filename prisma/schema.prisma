@@ -1,0 +1,318 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id                  String       @id @default(cuid())
+  fullName            String
+  email               String       @unique
+  username            String?      @unique
+  studentOrEmployeeId String?      @unique
+  baseRole            Role
+  isTechnician        Boolean      @default(false)
+  department          String?
+  contact             String?
+  status              UserStatus   @default(ACTIVE)
+  passwordHash        String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  loansRequested      LoanRequest[] @relation("LoanRequester")
+  loansApproved       LoanRequest[] @relation("LoanApprover")
+  incidentsReported   Incident[]    @relation("IncidentReporter")
+  incidentsVerified   Incident[]    @relation("IncidentVerifier")
+  maintenanceAssigned Maintenance[] @relation("MaintenanceTechnician")
+  opnameAssigned      StockOpnameSession[] @relation("OpnameVerifier")
+  opnameReconciled    StockOpnameRecord[]  @relation("OpnameReconciler")
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  devicesCustodied    Device[]      @relation("DeviceCustodian")
+}
+
+enum MasterDataStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Category {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  status    MasterDataStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  devices   Device[]
+}
+
+model Location {
+  id                 String           @id @default(cuid())
+  name               String           @unique
+  parentLocationId   String?
+  parentLocation     Location?        @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  childLocations     Location[]       @relation("LocationHierarchy")
+  status             MasterDataStatus @default(ACTIVE)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  devices            Device[]
+  incidents          Incident[]
+  stockOpnameRecords StockOpnameRecord[]
+}
+
+enum DeviceStatus {
+  AVAILABLE
+  BORROWED
+  UNDER_MAINTENANCE
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum DeviceCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  DAMAGED
+  CRITICAL
+}
+
+model Device {
+  id                     String           @id @default(cuid())
+  assetTag               String           @unique
+  serialNumber           String?          @unique
+  qrCodeValue            String           @unique
+  categoryId             String
+  category               Category         @relation(fields: [categoryId], references: [id])
+  deviceType             String
+  brand                  String
+  model                  String
+  locationId             String
+  location               Location         @relation(fields: [locationId], references: [id])
+  acquisitionDate        DateTime?
+  yearAcquired           Int?
+  acquisitionSource      String?
+  purchasePrice          Decimal?
+  warrantyInfo           String?
+  status                 DeviceStatus
+  condition              DeviceCondition
+  currentCustodianUserId String?
+  currentCustodian       User?            @relation("DeviceCustodian", fields: [currentCustodianUserId], references: [id])
+  description            String?
+  notes                  String?
+  photoUrl               String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  loanItems              LoanItem[]
+  incidents              Incident[]
+  maintenances           Maintenance[]
+  stockOpnameRecords     StockOpnameRecord[]
+}
+
+enum LoanRequestStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ACTIVE
+  RETURNED
+  PARTIALLY_RETURNED
+}
+
+model LoanRequest {
+  id                 String             @id @default(cuid())
+  requesterId        String
+  requester          User               @relation("LoanRequester", fields: [requesterId], references: [id])
+  purpose            String
+  startDate          DateTime
+  expectedReturnDate DateTime
+  notes              String?
+  status             LoanRequestStatus  @default(PENDING_APPROVAL)
+  approverId         String?
+  approver           User?              @relation("LoanApprover", fields: [approverId], references: [id])
+  approvedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  items              LoanItem[]
+}
+
+enum LoanItemStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  RETURNED
+  REJECTED
+}
+
+model LoanItem {
+  id              String          @id @default(cuid())
+  loanRequestId   String
+  loanRequest     LoanRequest     @relation(fields: [loanRequestId], references: [id])
+  deviceId        String
+  device          Device          @relation(fields: [deviceId], references: [id])
+  itemStatus      LoanItemStatus  @default(PENDING)
+  returnedAt      DateTime?
+  returnCondition DeviceCondition?
+  returnNotes     String?
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  REPORTED
+  UNDER_REVIEW
+  VERIFIED
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum VerificationOutcome {
+  NO_ISSUE_FOUND
+  MINOR_ISSUE
+  MAJOR_ISSUE
+  MAINTENANCE_REQUIRED
+  REPLACEMENT_REQUIRED
+  RETIREMENT_RECOMMENDED
+}
+
+model Incident {
+  id                  String               @id @default(cuid())
+  deviceId            String
+  device              Device               @relation(fields: [deviceId], references: [id])
+  reporterId          String
+  reporter            User                 @relation("IncidentReporter", fields: [reporterId], references: [id])
+  reportDate          DateTime             @default(now())
+  description         String
+  severity            IncidentSeverity
+  locationId          String?
+  location            Location?            @relation(fields: [locationId], references: [id])
+  photoUrl            String?
+  notes               String?
+  status              IncidentStatus       @default(REPORTED)
+  verificationOutcome VerificationOutcome?
+  verifiedById        String?
+  verifiedBy          User?                @relation("IncidentVerifier", fields: [verifiedById], references: [id])
+  verifiedAt          DateTime?
+
+  maintenances        Maintenance[]
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_PARTS
+  COMPLETED
+  CANCELLED
+}
+
+model Maintenance {
+  id                String            @id @default(cuid())
+  deviceId          String
+  device            Device            @relation(fields: [deviceId], references: [id])
+  relatedIncidentId String?
+  relatedIncident   Incident?         @relation(fields: [relatedIncidentId], references: [id])
+  technicianId      String
+  technician        User              @relation("MaintenanceTechnician", fields: [technicianId], references: [id])
+  maintenanceType   String
+  problem           String
+  diagnosis         String?
+  actionTaken       String?
+  partsReplaced     String?
+  cost              Decimal?
+  startDate         DateTime
+  completionDate    DateTime?
+  result            String?
+  notes             String?
+  attachmentUrl     String?
+  status            MaintenanceStatus @default(OPEN)
+}
+
+enum StockOpnameStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+}
+
+model StockOpnameSession {
+  id                 String             @id @default(cuid())
+  sessionName        String
+  locationScope      String[]
+  categoryScope      String[]
+  startDate          DateTime
+  assignedVerifierId String
+  assignedVerifier   User               @relation("OpnameVerifier", fields: [assignedVerifierId], references: [id])
+  notes              String?
+  status             StockOpnameStatus  @default(OPEN)
+
+  records            StockOpnameRecord[]
+}
+
+enum VerificationResult {
+  FOUND
+  MISSING
+  WRONG_LOCATION
+  DAMAGED
+  UNVERIFIED
+}
+
+model StockOpnameRecord {
+  id                 String             @id @default(cuid())
+  sessionId          String
+  session            StockOpnameSession @relation(fields: [sessionId], references: [id])
+  deviceId           String
+  device             Device             @relation(fields: [deviceId], references: [id])
+  verificationResult VerificationResult @default(UNVERIFIED)
+  physicalLocationId String?
+  physicalLocation   Location?          @relation(fields: [physicalLocationId], references: [id])
+  physicalCondition  DeviceCondition?
+  reconciled         Boolean            @default(false)
+  reconciledById     String?
+  reconciledBy       User?              @relation("OpnameReconciler", fields: [reconciledById], references: [id])
+  reconciledAt       DateTime?
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  actorId       String
+  actor         User     @relation(fields: [actorId], references: [id])
+  action        String
+  targetType    String
+  targetId      String
+  previousValue Json?
+  newValue      Json?
+  context       Json?
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      String
+  payload   Json
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
