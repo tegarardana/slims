@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Cpu, ShieldCheck, Lock, Mail, AlertCircle, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { Cpu, ShieldCheck, Lock, Mail, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
@@ -51,11 +51,6 @@ export default function LoginPage() {
     });
   };
 
-  const handleQuickFill = (emailVal: string, passVal: string) => {
-    setIdentifier(emailVal);
-    setPassword(passVal);
-    setErrorMsg(null);
-  };
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-slate-900 text-slate-100 p-4 sm:p-6 relative overflow-hidden">
@@ -152,39 +147,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Fill Test Accounts (For Seamless Verification) */}
-          <div className="pt-4 border-t border-slate-700/60 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Quick Test Credentials:</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@slims.edu', 'admin123')}
-                className="px-2.5 py-1.5 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 rounded-lg text-left text-xs transition-colors"
-              >
-                <div className="font-semibold text-indigo-300">Admin</div>
-                <div className="text-[10px] text-slate-400">admin123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('teacher@slims.edu', 'teacher123')}
-                className="px-2.5 py-1.5 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 rounded-lg text-left text-xs transition-colors"
-              >
-                <div className="font-semibold text-amber-300">Teacher+Tech</div>
-                <div className="text-[10px] text-slate-400">teacher123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('student@slims.edu', 'student123')}
-                className="px-2.5 py-1.5 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 rounded-lg text-left text-xs transition-colors"
-              >
-                <div className="font-semibold text-emerald-300">Student</div>
-                <div className="text-[10px] text-slate-400">student123</div>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security / PRD Compliance Notice */}
