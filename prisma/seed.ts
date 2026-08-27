@@ -16,6 +16,7 @@ async function main() {
       isTechnician: true,
       department: 'IT Infrastructure',
       password: 'admin123',
+      studentOrEmployeeId: null as string | null,
     },
   ];
 
