@@ -5,6 +5,7 @@ import { hasPermission } from '@/lib/permissions';
 import { ImportUserRowSchema } from '@/lib/validators/user';
 import { createAuditLog } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,13 +101,12 @@ export async function POST(request: NextRequest) {
 
     // Process insertion
     const createdUsers: any[] = [];
-    const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
+    const generatedPasswords: Array<{ email: string; password?: string }> = [];
 
     for (const validRow of validRows) {
-      const passwordHash =
-        validRow.password && validRow.password !== 'Password123!'
-          ? await bcrypt.hash(validRow.password, 10)
-          : defaultPasswordHash;
+      const isRandomPassword = !validRow.password;
+      const rawPassword = validRow.password || crypto.randomBytes(8).toString('hex');
+      const passwordHash = await bcrypt.hash(rawPassword, 10);
 
       const user = await prisma.user.create({
         data: {
@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
           department: validRow.department || null,
           contact: validRow.contact || null,
           passwordHash,
+          mustChangePassword: isRandomPassword,
         },
         select: {
           id: true,
@@ -129,6 +130,24 @@ export async function POST(request: NextRequest) {
         },
       });
       createdUsers.push(user);
+      
+      if (isRandomPassword) {
+        generatedPasswords.push({ email: validRow.email, password: rawPassword });
+      }
+    }
+
+    // Generate a one-time export token for passwords
+    let exportToken = null;
+    if (generatedPasswords.length > 0) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await prisma.exportToken.create({
+        data: {
+          token,
+          payload: generatedPasswords,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 mins expiry
+        }
+      });
+      exportToken = token;
     }
 
     await createAuditLog({
@@ -150,6 +169,7 @@ export async function POST(request: NextRequest) {
         successCount: createdUsers.length,
         failedCount: errors.length,
         errors,
+        exportToken, // Instead of passwords, return a token to download CSV once
       },
     });
   } catch (error: any) {
