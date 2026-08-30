@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api-error';
+import { ImportDeviceRowSchema } from '@/lib/validators/device';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
@@ -58,29 +59,30 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < rows.length; i++) {
       const raw = rows[i];
       const rowNum = i + 1;
-
-      const assetTag = (raw.assetTag || raw['Asset Tag'] || '').toString().trim().toUpperCase();
-      const brand = (raw.brand || raw['Brand'] || '').toString().trim();
-      const model = (raw.model || raw['Model'] || '').toString().trim();
-      const deviceType = (raw.deviceType || raw['Device Type'] || raw.type || 'Equipment').toString().trim();
-      const rawCategory = (raw.category || raw.categoryId || raw['Category'] || '').toString().trim();
-      const rawLocation = (raw.location || raw.locationId || raw['Location'] || '').toString().trim();
-      const serialNumber = (raw.serialNumber || raw['Serial Number'] || '').toString().trim();
-      const rawYear = raw.yearAcquired || raw['Year Acquired'];
-      const yearAcquired = rawYear ? parseInt(rawYear.toString(), 10) : undefined;
-      const rawStatus = (raw.status || raw['Status'] || 'AVAILABLE').toString().trim().toUpperCase();
-      const rawCondition = (raw.condition || raw['Condition'] || 'GOOD').toString().trim().toUpperCase();
-      const description = (raw.description || raw['Description'] || '').toString().trim();
-
-      // Check required fields
-      if (!assetTag) {
-        errors.push({ row: rowNum, data: raw, reason: 'Asset Tag is required' });
+      
+      const parsed = ImportDeviceRowSchema.safeParse(raw);
+      if (!parsed.success) {
+        errors.push({
+          row: rowNum,
+          data: raw,
+          reason: parsed.error.issues.map((issue) => issue.message).join(', '),
+        });
         continue;
       }
-      if (!brand || !model) {
-        errors.push({ row: rowNum, data: raw, reason: 'Brand and Model are required' });
-        continue;
-      }
+      
+      const validated = parsed.data;
+
+      const assetTag = validated.assetTag;
+      const brand = validated.brand;
+      const model = validated.model;
+      const deviceType = validated.deviceType;
+      const rawCategory = (validated.category || validated.categoryId || '').toString().trim();
+      const rawLocation = (validated.location || validated.locationId || '').toString().trim();
+      const serialNumber = validated.serialNumber || '';
+      const yearAcquired = validated.yearAcquired;
+      const status = validated.status;
+      const condition = validated.condition;
+      const description = validated.description || '';
 
       // Check duplicate Asset Tag
       if (existingTags.has(assetTag)) {
@@ -116,24 +118,6 @@ export async function POST(request: NextRequest) {
         locationId = found ? found.id : allLocations[0]?.id;
       }
       if (!locationId) locationId = allLocations[0]?.id;
-
-      // Status & Condition normalization
-      const status = [
-        'AVAILABLE',
-        'BORROWED',
-        'UNDER_MAINTENANCE',
-        'LOST',
-        'RETIRED',
-        'DISPOSED',
-      ].includes(rawStatus)
-        ? rawStatus
-        : 'AVAILABLE';
-
-      const condition = ['EXCELLENT', 'GOOD', 'FAIR', 'DAMAGED', 'CRITICAL'].includes(
-        rawCondition
-      )
-        ? rawCondition
-        : 'GOOD';
 
       // Track in-batch unique keys
       existingTags.add(assetTag);
