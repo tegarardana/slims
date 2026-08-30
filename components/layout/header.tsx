@@ -13,12 +13,17 @@ import {
   Clock,
   ArrowRight,
   Check,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Menu,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSidebar } from './sidebar-context';
 
 export function Header() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const { isCollapsed, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const user = session?.user as any;
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -50,10 +55,21 @@ export function Header() {
   const notifications = notifData?.notifications || [];
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Search Bar (DESIGN.md §8, §9) */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
+    <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs gap-4">
+      {/* Left section: Mobile toggle & Search Bar */}
+      <div className="flex items-center gap-3 flex-1 max-w-lg">
+        {/* Mobile Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleMobileSidebar}
+          aria-label="Toggle navigation menu"
+          className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Search Bar (DESIGN.md §8, §9) */}
+        <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -62,7 +78,7 @@ export function Header() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-100/80 border border-slate-200 rounded-lg pl-9 pr-12 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all placeholder:text-slate-400"
           />
-          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-xs">
+          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-xs">
             ⌘K
           </kbd>
         </div>
