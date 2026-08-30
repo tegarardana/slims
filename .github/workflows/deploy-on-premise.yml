@@ -44,6 +44,9 @@ jobs:
       - name: Build Next.js
         run: npx dotenv -e .env -- npm run build
 
-      # Langkah 6: Restart proses aplikasi Next.js di PM2 untuk mengaplikasikan pembaruan
+      # Langkah 6: Jalankan ulang proses aplikasi Next.js di PM2 dengan mengarahkan direktori kerja ke folder build saat ini
       - name: Restart App via PM2
-        run: pm2 restart slims-app || pm2 start npm --name "slims-app" -- start
+        run: |
+          pm2 delete slims-app || true
+          pm2 start npm --name "slims-app" --cwd ${{ github.workspace }} -- start
+          pm2 save
