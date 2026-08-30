@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { LoginSchema } from '@/lib/validators/user';
 
-if (!process.env.AUTH_SECRET) {
+if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET && !process.env.CI) {
   throw new Error('AUTH_SECRET environment variable is required');
 }
 
