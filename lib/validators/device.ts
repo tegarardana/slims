@@ -21,7 +21,7 @@ export const CreateDeviceSchema = z.object({
     .default('GOOD'),
   description: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
-  photoUrl: z.string().optional().nullable().or(z.literal('')),
+  photoUrl: z.string().url().refine(val => val.startsWith('https://'), 'Must use HTTPS').optional().nullable().or(z.literal('')),
 });
 
 export type CreateDeviceInput = z.infer<typeof CreateDeviceSchema>;
@@ -47,7 +47,7 @@ export const UpdateDeviceSchema = z.object({
     .optional(),
   description: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
-  photoUrl: z.string().optional().nullable().or(z.literal('')),
+  photoUrl: z.string().url().refine(val => val.startsWith('https://'), 'Must use HTTPS').optional().nullable().or(z.literal('')),
 });
 
 export type UpdateDeviceInput = z.infer<typeof UpdateDeviceSchema>;

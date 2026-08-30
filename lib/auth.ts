@@ -65,10 +65,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.baseRole = (user as any).baseRole;
         token.isTechnician = (user as any).isTechnician;
         token.status = (user as any).status;
+        token.lastRevalidated = Date.now();
       }
+
+      // Revalidate every 5 minutes
+      const shouldRevalidate = !token.lastRevalidated || (Date.now() - (token.lastRevalidated as number) > 300000);
+      
+      if (shouldRevalidate && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { baseRole: true, isTechnician: true, status: true },
+          });
+          
+          if (dbUser) {
+            token.baseRole = dbUser.baseRole;
+            token.isTechnician = dbUser.isTechnician;
+            token.status = dbUser.status;
+            token.lastRevalidated = Date.now();
+          } else {
+            token.status = 'INACTIVE';
+          }
+        } catch (error) {
+          console.error('Session revalidation error:', error);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
+      if (token.status !== 'ACTIVE') {
+        // Invalidate session for inactive or deleted users
+        return { ...session, user: undefined as any };
+      }
+
       if (session.user && token) {
         session.user.id = token.id as string;
         (session.user as any).baseRole = token.baseRole;
