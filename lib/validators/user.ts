@@ -52,7 +52,15 @@ export const ImportUserRowSchema = z.object({
   isTechnician: z.boolean().default(false),
   department: z.string().optional(),
   contact: z.string().optional(),
-  password: z.string().min(6).default('Password123!'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(72, 'Password cannot exceed 72 characters')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
+      'Password must contain uppercase, lowercase, and numbers'
+    )
+    .optional(),
 });
 
 export type ImportUserRow = z.infer<typeof ImportUserRowSchema>;

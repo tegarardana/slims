@@ -1,82 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+import { handleApiError } from '@/lib/api-error';
 import { createAuditLog } from '@/lib/audit';
 
-// In-memory / file-persisted settings configuration default
-let systemSettings = {
-  institutionName: 'SMK Negeri 1 Rekayasa Teknologi',
-  labName: 'Laboratorium Jaringan Komputer & Telekomunikasi (TKJ)',
-  defaultLoanDurationDays: 3,
-  maxDevicesPerLoan: 5,
-  overdueWarningDays: 1,
-  allowSelfIncidentReporting: true,
-  requireApprovalForTeachers: false,
-  autoArchiveCompletedAudits: false,
-};
+const SettingsSchema = z.object({
+  organizationName: z.string().min(2).max(100),
+  defaultLanguage: z.enum(['id', 'en']),
+  maintenanceAlertDays: z.number().int().min(1).max(90),
+  maxLoanDurationDays: z.number().int().min(1).max(365),
+  enableEmailNotifications: z.boolean(),
+  autoApproveLowValueLoans: z.boolean(),
+});
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    const user = session?.user as any;
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: systemSettings,
-    });
-  } catch (error: any) {
-    console.error('Error fetching settings:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    const records = await prisma.systemSetting.findMany();
+    const settings = records.reduce((acc, record) => {
+      acc[record.key] = record.value;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return NextResponse.json({ success: true, data: settings });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    const user = session?.user as any;
-    if (!user || user.baseRole !== 'ADMIN') {
-      return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: 'Access denied: Must be Administrator to update system settings' } },
-        { status: 403 }
-      );
+    if (!session?.user || !hasPermission(session.user as any, 'MANAGE_SETTINGS')) {
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } }, { status: 403 });
     }
 
     const body = await request.json();
-    const previous = { ...systemSettings };
-    systemSettings = {
-      ...systemSettings,
-      ...body,
-    };
+    const validated = SettingsSchema.safeParse(body);
+
+    if (!validated.success) {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: validated.error.issues.map((e: any) => e.message).join(', ') } },
+        { status: 400 }
+      );
+    }
+
+    // Save to database
+    for (const [key, value] of Object.entries(validated.data)) {
+      await prisma.systemSetting.upsert({
+        where: { key },
+        update: { value: value as any, updatedBy: (session.user as any).id },
+        create: { key, value: value as any, updatedBy: (session.user as any).id }
+      });
+    }
 
     await createAuditLog({
-      actorId: user.id,
+      actorId: (session.user as any).id,
       action: 'SYSTEM_SETTINGS_UPDATED',
-      targetType: 'SystemSettings',
-      targetId: 'global',
-      previousValue: previous,
-      newValue: systemSettings,
+      targetType: 'Settings',
+      targetId: 'SYSTEM',
+      newValue: validated.data,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: systemSettings,
-      message: 'System settings successfully updated.',
-    });
-  } catch (error: any) {
-    console.error('Error saving settings:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, data: validated.data });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

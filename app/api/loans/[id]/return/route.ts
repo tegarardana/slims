@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ReturnLoanItemSchema } from '@/lib/validators/loan';
@@ -133,10 +134,6 @@ export async function POST(
       message: `Device ${targetItem.device.assetTag} successfully returned in ${returnCondition} condition.`,
     });
   } catch (error: any) {
-    console.error('Error processing equipment return:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding initial data for SLIMS...');
 
+  if (!process.env.SEED_ADMIN_PASSWORD) {
+    throw new Error('SEED_ADMIN_PASSWORD environment variable is required for seeding.');
+  }
+
   // 1. Seed Users for All Key Roles & Capabilities (Phase 1 DoD)
   const usersToSeed = [
     {
@@ -15,7 +19,7 @@ async function main() {
       baseRole: 'ADMIN' as const,
       isTechnician: true,
       department: 'IT Infrastructure',
-      password: 'admin123',
+      password: process.env.SEED_ADMIN_PASSWORD,
       studentOrEmployeeId: null as string | null,
     },
   ];

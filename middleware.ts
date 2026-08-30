@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function middleware(request: NextRequest) {
   const session = await auth();
@@ -8,6 +9,26 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = pathname.startsWith('/login');
   const isApiAuth = pathname.startsWith('/api/auth');
+
+  // Rate Limiting
+  // Note: Prioritize Cloudflare Tunnel header (cf-connecting-ip), fallback to x-forwarded-for or x-real-ip
+  const ip =
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  
+  if (pathname.startsWith('/api/auth/signin') || pathname.startsWith('/api/auth/callback/credentials')) {
+    const { success } = checkRateLimit(ip, 'AUTH', 5); // 5 attempts per 15 min
+    if (!success) {
+      return new NextResponse('Too Many Requests', { status: 429, headers: { 'Retry-After': '900' } });
+    }
+  } else if (pathname.startsWith('/api/')) {
+    const { success } = checkRateLimit(ip, 'API', 60); // 60 requests per 1 min
+    if (!success) {
+      return new NextResponse('Too Many Requests', { status: 429, headers: { 'Retry-After': '60' } });
+    }
+  }
 
   if (isApiAuth) {
     return NextResponse.next();

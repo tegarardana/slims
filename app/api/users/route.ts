@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getPaginationParams, validateSortBy } from '@/lib/pagination';
 import { hasPermission } from '@/lib/permissions';
 import { CreateUserSchema } from '@/lib/validators/user';
 import { createAuditLog } from '@/lib/audit';
@@ -22,9 +24,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const isTechnician = searchParams.get('isTechnician');
     const department = searchParams.get('department');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    
+    const { skip, take, page, limit: pageSize } = getPaginationParams(searchParams, 100);
+    const sortByRaw = searchParams.get('sortBy');
+    const sortBy = validateSortBy(sortByRaw, [
+      'fullName', 'email', 'username', 'baseRole', 'status', 'createdAt', 'updatedAt'
+    ]);
     const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
 
     const where: any = {};
@@ -53,14 +58,12 @@ export async function GET(request: NextRequest) {
     if (department) {
       where.department = { contains: department, mode: 'insensitive' };
     }
-
-    const skip = (page - 1) * pageSize;
     const [total, users] = await Promise.all([
       prisma.user.count({ where }),
       prisma.user.findMany({
         where,
         skip,
-        take: pageSize,
+        take,
         orderBy: { [sortBy]: sortDir },
         select: {
           id: true,
@@ -90,11 +93,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -204,10 +203,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: newUser }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating user:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

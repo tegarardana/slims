@@ -21,7 +21,7 @@ export const CreateDeviceSchema = z.object({
     .default('GOOD'),
   description: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
-  photoUrl: z.string().optional().nullable().or(z.literal('')),
+  photoUrl: z.string().url().refine(val => val.startsWith('https://'), 'Must use HTTPS').optional().nullable().or(z.literal('')),
 });
 
 export type CreateDeviceInput = z.infer<typeof CreateDeviceSchema>;
@@ -47,7 +47,32 @@ export const UpdateDeviceSchema = z.object({
     .optional(),
   description: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
-  photoUrl: z.string().optional().nullable().or(z.literal('')),
+  photoUrl: z.string().url().refine(val => val.startsWith('https://'), 'Must use HTTPS').optional().nullable().or(z.literal('')),
 });
 
 export type UpdateDeviceInput = z.infer<typeof UpdateDeviceSchema>;
+
+const sanitizeCsvString = (val: any) => {
+  if (!val) return val;
+  const str = String(val);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+};
+
+export const ImportDeviceRowSchema = z.object({
+  assetTag: z.string().min(1).transform(sanitizeCsvString),
+  brand: z.string().min(1).transform(sanitizeCsvString),
+  model: z.string().min(1).transform(sanitizeCsvString),
+  deviceType: z.string().default('Equipment').transform(sanitizeCsvString),
+  category: z.string().optional().transform(sanitizeCsvString),
+  categoryId: z.string().optional().transform(sanitizeCsvString),
+  location: z.string().optional().transform(sanitizeCsvString),
+  locationId: z.string().optional().transform(sanitizeCsvString),
+  serialNumber: z.string().optional().transform(sanitizeCsvString),
+  yearAcquired: z.coerce.number().int().min(1990).max(2050).optional(),
+  status: z.enum(['AVAILABLE', 'BORROWED', 'UNDER_MAINTENANCE', 'LOST', 'RETIRED', 'DISPOSED']).default('AVAILABLE'),
+  condition: z.enum(['EXCELLENT', 'GOOD', 'FAIR', 'DAMAGED', 'CRITICAL']).default('GOOD'),
+  description: z.string().optional().transform(sanitizeCsvString),
+});

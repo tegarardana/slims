@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ScanRecordSchema } from '@/lib/validators/stock-opname';
@@ -134,10 +135,6 @@ export async function POST(
       message: `Device ${updatedRecord.device.assetTag} marked as ${verificationResult}`,
     });
   } catch (error: any) {
-    console.error('Error recording stock opname scan:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
