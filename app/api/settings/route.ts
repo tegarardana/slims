@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || !hasPermission(session.user as any, 'MANAGE_SYSTEM')) {
+    if (!session?.user || !hasPermission(session.user as any, 'MANAGE_SETTINGS')) {
       return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } }, { status: 403 });
     }
 
@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest) {
 
     if (!validated.success) {
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: validated.error.errors.map(e => e.message).join(', ') } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: validated.error.issues.map((e: any) => e.message).join(', ') } },
         { status: 400 }
       );
     }

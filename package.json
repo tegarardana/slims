@@ -20,7 +20,7 @@
     "lru-cache": "^11.5.2",
     "lucide-react": "^1.34.0",
     "next": "16.3.3",
-    "next-auth": "^5.0.0-beta.32",
+    "next-auth": "5.0.0-beta.32",
     "papaparse": "^5.7.0",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
