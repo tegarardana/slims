@@ -307,40 +307,6 @@ export function Sidebar() {
             </div>
           ))}
         </div>
-
-        {/* User Role Card */}
-        <div className="p-2.5 border-t border-slate-800 bg-slate-950/40">
-          <div
-            className={`flex items-center rounded-lg bg-slate-800/50 border border-slate-700/50 transition-all ${
-              isCollapsed ? 'md:justify-center md:p-1.5 p-2 gap-3' : 'px-2 py-2 gap-3'
-            }`}
-          >
-            <div
-              className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-200 font-bold text-xs uppercase shrink-0"
-              title={isCollapsed ? `${user?.name || 'User'} (${role})` : undefined}
-            >
-              {user?.name?.slice(0, 2) || 'AD'}
-            </div>
-
-            <div
-              className={`min-w-0 flex-1 transition-all duration-200 ${
-                isCollapsed ? 'md:hidden' : 'block'
-              }`}
-            >
-              <div className="text-xs font-semibold text-white truncate">
-                {user?.name || 'User'}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <span className="capitalize">{role.toLowerCase()}</span>
-                {isTechnician && (
-                  <span className="inline-flex items-center text-[10px] text-amber-400 font-medium">
-                    • Tech
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );
