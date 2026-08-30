@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getPaginationParams, validateSortBy } from '@/lib/pagination';
 import { hasPermission } from '@/lib/permissions';
 import { computeAvailability } from '@/lib/availability';
 import { CreateDeviceSchema } from '@/lib/validators/device';
@@ -28,9 +29,11 @@ export async function GET(request: NextRequest) {
     const yearAcquired = searchParams.get('yearAcquired');
     const availableOnly = searchParams.get('availableOnly') === 'true';
 
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const { skip, take, page, limit: pageSize } = getPaginationParams(searchParams, 100);
+    const sortByRaw = searchParams.get('sortBy');
+    const sortBy = validateSortBy(sortByRaw, [
+      'assetTag', 'serialNumber', 'brand', 'model', 'status', 'condition', 'yearAcquired', 'createdAt', 'updatedAt'
+    ]);
     const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
 
     const where: any = {};
@@ -62,13 +65,12 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const skip = (page - 1) * pageSize;
     const [total, devices] = await Promise.all([
       prisma.device.count({ where }),
       prisma.device.findMany({
         where,
         skip,
-        take: pageSize,
+        take,
         orderBy: { [sortBy]: sortDir },
         include: {
           category: { select: { id: true, name: true } },
