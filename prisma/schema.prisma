@@ -326,3 +326,10 @@ model ExportToken {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
