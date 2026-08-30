@@ -1,0 +1,49 @@
+name: Deploy SLIMS On-Premise
+
+# Jalankan skrip ini secara otomatis hanya saat ada push atau merge ke branch main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    # Memerintahkan pekerjaan berjalan di mesin lokal (Self-hosted runner) yang sudah kita setup
+    runs-on: self-hosted
+
+    steps:
+      # Langkah 1: Unduh kode sumber terbaru dari repositori GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      # Langkah 2: Setup lingkungan Node.js
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Langkah 3: Install dependency npm secara bersih (clean install)
+      - name: Install dependencies
+        run: npm ci
+
+      # Langkah 3.5: Pastikan dotenv-cli tersedia untuk memuat .env secara eksplisit
+      - name: Ensure dotenv-cli is available
+        run: npm list dotenv-cli --depth=0 || npm install -D dotenv-cli
+
+      # Langkah 4: Sinkronisasi skema database lokal (Prisma)
+      # File .env di server (hasil checkout, tidak terhapus karena clean: false)
+      # dimuat secara eksplisit oleh dotenv-cli sebelum menjalankan Prisma
+      - name: Database Migration
+        run: npx dotenv -e .env -- npx prisma migrate deploy
+
+      # Langkah 5: Build source code ke versi produksi Next.js
+      # Ditambahkan dotenv juga karena Next.js build kadang butuh akses DATABASE_URL
+      # (misalnya jika Prisma Client di-generate ulang saat build)
+      - name: Build Next.js
+        run: npx dotenv -e .env -- npm run build
+
+      # Langkah 6: Restart proses aplikasi Next.js di PM2 untuk mengaplikasikan pembaruan
+      - name: Restart App via PM2
+        run: pm2 restart slims-app || pm2 start npm --name "slims-app" -- start
