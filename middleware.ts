@@ -11,8 +11,12 @@ export async function middleware(request: NextRequest) {
   const isApiAuth = pathname.startsWith('/api/auth');
 
   // Rate Limiting
-  // Note: Vercel functions do not share memory. Upgrade to Redis (@upstash/ratelimit) for prod.
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  // Note: Prioritize Cloudflare Tunnel header (cf-connecting-ip), fallback to x-forwarded-for or x-real-ip
+  const ip =
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   
   if (pathname.startsWith('/api/auth/signin') || pathname.startsWith('/api/auth/callback/credentials')) {
     const { success } = checkRateLimit(ip, 'AUTH', 5); // 5 attempts per 15 min
