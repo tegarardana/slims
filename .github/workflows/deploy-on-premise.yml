@@ -14,6 +14,8 @@ jobs:
       # Langkah 1: Unduh kode sumber terbaru dari repositori GitHub
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       # Langkah 2: Setup lingkungan Node.js
       - name: Install Node.js
