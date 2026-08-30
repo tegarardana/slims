@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       # Langkah 3: Install dependency npm secara bersih (clean install)
       - name: Install dependencies
@@ -31,6 +30,19 @@ jobs:
       # Langkah 3.5: Pastikan dotenv-cli tersedia untuk memuat .env secara eksplisit
       - name: Ensure dotenv-cli is available
         run: npm list dotenv-cli --depth=0 || npm install -D dotenv-cli
+
+      # Langkah debug sementara: cek apakah .env benar-benar ada di working directory ini
+      - name: Debug - check working dir and .env
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Files in this directory:"
+          ls -la
+          if [ -f .env ]; then
+            echo ".env FOUND"
+            echo "Contains DATABASE_URL key: $(grep -c DATABASE_URL .env || echo 0)"
+          else
+            echo ".env NOT FOUND"
+          fi
 
       # Langkah 4: Sinkronisasi skema database lokal (Prisma)
       # File .env di server (hasil checkout, tidak terhapus karena clean: false)
@@ -44,9 +56,6 @@ jobs:
       - name: Build Next.js
         run: npx dotenv -e .env -- npm run build
 
-      # Langkah 6: Jalankan ulang proses aplikasi Next.js di PM2 dengan mengarahkan direktori kerja ke folder build saat ini
+      # Langkah 6: Restart proses aplikasi Next.js di PM2 untuk mengaplikasikan pembaruan
       - name: Restart App via PM2
-        run: |
-          pm2 delete slims-app || true
-          pm2 start npm --name "slims-app" --cwd ${{ github.workspace }} -- start
-          pm2 save
+        run: pm2 restart slims-app || pm2 start npm --name "slims-app" -- start

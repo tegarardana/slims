@@ -1,0 +1,52 @@
+name: Test SLIMS
+
+# Jalankan setiap ada push ke branch apapun, dan setiap ada Pull Request ke main
+# Ini beda dari workflow deploy yang cuma jalan saat push ke main
+on:
+  push:
+    branches-ignore: [ main ]  # branch selain main (fitur/dev), karena push ke main sudah ditangani deploy.yml
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    # Pakai GitHub-hosted runner, karena testing tidak perlu akses server production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'  # aman dipakai di sini karena ini GitHub-hosted runner, bukan self-hosted
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Cek error TypeScript tanpa benar-benar build production
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Cek code style / potential bugs (sesuaikan kalau kamu pakai ESLint)
+      - name: Lint
+        run: npm run lint
+
+      # Belum ada test suite di package.json project ini (Jest/Vitest dll),
+      # jadi step ini di-skip. Tambahkan lagi kalau nanti sudah ada script "test".
+      # - name: Run tests
+      #   run: npm test
+
+      # Generate Prisma Client secara eksplisit, karena package.json belum punya
+      # script "postinstall": "prisma generate" yang biasanya jalan otomatis
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # Opsional: pastikan project benar-benar bisa di-build tanpa error,
+      # tanpa perlu koneksi ke database production
+      - name: Build check
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
