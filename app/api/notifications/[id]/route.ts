@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -33,10 +34,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
-    console.error('Error marking notification as read:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

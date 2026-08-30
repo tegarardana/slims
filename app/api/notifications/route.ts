@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -39,11 +40,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching notifications:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -70,10 +67,6 @@ export async function PATCH(request: NextRequest) {
       message: 'All notifications marked as read',
     });
   } catch (error: any) {
-    console.error('Error marking all notifications as read:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/api-error';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
@@ -215,10 +216,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error importing devices:', error);
-    return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
