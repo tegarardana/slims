@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable, DataTableFilterOption, BulkActionOption } from '@/components/data-table/data-table';
@@ -53,6 +53,17 @@ export default function InventoryPage() {
   const [availableOnly, setAvailableOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  // Sync search param from URL if redirected from global search header
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSearch = urlParams.get('search');
+      if (urlSearch) {
+        setSearch(urlSearch);
+      }
+    }
+  }, []);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

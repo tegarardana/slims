@@ -197,15 +197,15 @@ export function Sidebar() {
                   <Cpu className="w-5 h-5" />
                 </div>
 
-                <div className="overflow-hidden whitespace-nowrap">
-                  <div className="font-bold text-white text-base tracking-tight flex items-center gap-1.5">
+                <div className="overflow-hidden whitespace-nowrap min-w-0">
+                  <div className="font-bold text-white text-base tracking-tight">
                     SLIMS
-                    <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-indigo-900/80 text-indigo-300 border border-indigo-700/50">
-                      v2.0
-                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-400 truncate max-w-[130px]">
-                    Network Equipment
+                  <div
+                    className="text-[11px] text-slate-400 truncate max-w-[140px]"
+                    title="Inventory Management"
+                  >
+                    Inventory Management
                   </div>
                 </div>
               </div>
@@ -306,6 +306,31 @@ export function Sidebar() {
               </nav>
             </div>
           ))}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div
+          className={`border-t border-slate-800/80 bg-slate-950/40 transition-all ${
+            isCollapsed ? 'p-3 flex justify-center' : 'px-4 py-3 flex items-center justify-between'
+          }`}
+        >
+          {isCollapsed ? (
+            <div className="relative group flex items-center justify-center">
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60">
+                v2.0
+              </span>
+              <div className="hidden md:group-hover:flex fixed left-[78px] z-50 items-center px-2.5 py-1.5 rounded-md bg-slate-800 text-white text-xs font-medium shadow-xl border border-slate-700 whitespace-nowrap animate-in fade-in-0 zoom-in-95 pointer-events-none">
+                SLIMS v2.0
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between w-full text-[11px] text-slate-400">
+              <span className="truncate">School Lab &amp; Inventory</span>
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60 shrink-0">
+                v2.0
+              </span>
+            </div>
+          )}
         </div>
       </aside>
     </>

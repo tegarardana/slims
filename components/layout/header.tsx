@@ -1,32 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
   Bell,
   LogOut,
-  User,
-  ShieldAlert,
-  CheckCircle2,
-  Clock,
   ArrowRight,
-  Check,
-  PanelLeftClose,
-  PanelLeftOpen,
   Menu,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSidebar } from './sidebar-context';
 
 export function Header() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const { isCollapsed, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { toggleMobileSidebar } = useSidebar();
   const user = session?.user as any;
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut listener for Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+      if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+        searchInputRef.current?.blur();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Handle Search Submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/inventory?search=${encodeURIComponent(searchQuery.trim())}`);
+      searchInputRef.current?.blur();
+    }
+  };
 
   // Fetch Unread Notifications
   const { data: notifData } = useQuery({
@@ -69,19 +91,27 @@ export function Header() {
         </button>
 
         {/* Search Bar (DESIGN.md §8, §9) */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <form onSubmit={handleSearch} className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="Search devices, asset tags, users, loans... (Ctrl+K)"
+            placeholder="Search devices, asset tags, users, loans... (Cmd+K)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-100/80 border border-slate-200 rounded-lg pl-9 pr-12 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all placeholder:text-slate-400"
           />
-          <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-xs">
+          <kbd
+            onClick={() => {
+              searchInputRef.current?.focus();
+              searchInputRef.current?.select();
+            }}
+            className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-xs cursor-pointer select-none hover:bg-slate-50 transition-colors"
+            title="Press ⌘K or Ctrl+K to search"
+          >
             ⌘K
           </kbd>
-        </div>
+        </form>
       </div>
 
       {/* Header Actions */}
