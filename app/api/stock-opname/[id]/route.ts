@@ -48,6 +48,19 @@ export async function GET(
       );
     }
 
+    // Fix #5: Restrict read access — only Admin, Technician, or the assigned verifier may view session details
+    const isAuthorized =
+      user.baseRole === 'ADMIN' ||
+      user.isTechnician ||
+      opnameSession.assignedVerifierId === user.id;
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Access denied: You do not have permission to view this stock opname session' } },
+        { status: 403 }
+      );
+    }
+
     const allRecords = opnameSession.records;
     const totalCount = allRecords.length;
     const verifiedCount = allRecords.filter((r) => r.verificationResult !== 'UNVERIFIED').length;

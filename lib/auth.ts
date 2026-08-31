@@ -53,6 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.fullName,
           baseRole: user.baseRole,
           isTechnician: user.isTechnician,
+          canApproveLoans: user.canApproveLoans,
           status: user.status,
         };
       },
@@ -64,6 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.baseRole = (user as any).baseRole;
         token.isTechnician = (user as any).isTechnician;
+        token.canApproveLoans = (user as any).canApproveLoans;
         token.status = (user as any).status;
         token.lastRevalidated = Date.now();
       }
@@ -75,12 +77,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { baseRole: true, isTechnician: true, status: true },
+            select: { baseRole: true, isTechnician: true, canApproveLoans: true, status: true },
           });
           
           if (dbUser) {
             token.baseRole = dbUser.baseRole;
             token.isTechnician = dbUser.isTechnician;
+            token.canApproveLoans = dbUser.canApproveLoans;
             token.status = dbUser.status;
             token.lastRevalidated = Date.now();
           } else {
@@ -103,6 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         (session.user as any).baseRole = token.baseRole;
         (session.user as any).isTechnician = token.isTechnician;
+        (session.user as any).canApproveLoans = token.canApproveLoans;
         (session.user as any).status = token.status;
       }
       return session;

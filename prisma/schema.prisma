@@ -29,6 +29,7 @@ model User {
   studentOrEmployeeId String?      @unique
   baseRole            Role
   isTechnician        Boolean      @default(false)
+  canApproveLoans     Boolean      @default(false)
   department          String?
   contact             String?
   status              UserStatus   @default(ACTIVE)

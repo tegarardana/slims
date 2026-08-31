@@ -74,10 +74,7 @@ export function hasPermission(
       return user.isTechnician;
 
     case 'VERIFY_STOCK_OPNAME':
-      if (resource?.assignedVerifierId && resource.assignedVerifierId === user.id) {
-        return true;
-      }
-      return user.isTechnician;
+      return !!(resource?.assignedVerifierId && resource.assignedVerifierId === user.id);
 
     case 'CRUD_DEVICE':
     case 'CRUD_CATEGORY_LOCATION':
